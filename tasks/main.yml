@@ -1,0 +1,49 @@
+---
+# tasks file for ansible-role-samba
+- name: 'SAMBA | Install '
+  yum:
+    pkg: "{{ item }}"
+    state: installed
+  with_items:
+    - libsemanage-python
+    - samba-common
+    - samba
+    - samba-client
+  become: yes
+
+- name: 'SAMBA | Create Samba shared directory '
+  file:
+    state: directory
+    path: '/usr/shared'
+    owner: vagrant 
+    group: vagrant
+    mode: '0766'
+
+- name: 'SAMBA | Copy configuration '
+  copy:
+    dest: /etc/samba/smb.conf
+    src: files/smb.conf
+  become: yes
+  notify:
+    - Restart Samba
+
+- name: 'SAMBA | Start service '
+  service:
+    name: smb
+    state: started
+    enabled: yes
+  become: yes
+
+- name: 'SAMBA | Store user list '
+  shell: pdbedit -L | awk -F":" '{print $1}'  
+  register: samba_user_list  
+  become: yes
+  changed_when: false  
+  always_run: yes  
+
+- name: 'SAMBA | Add samba user ' 
+  shell: >
+    (echo vagrant; echo vagrant) \
+    | smbpasswd -s -a vagrant
+  when: samba_user_list.stdout_lines.count("vagrant") < 1  
+  become: yes

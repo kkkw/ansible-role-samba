@@ -1,0 +1,6 @@
+---
+- name: 'Restart Samba'
+  service:
+    name: smb
+    state: restarted
+  become: yes
